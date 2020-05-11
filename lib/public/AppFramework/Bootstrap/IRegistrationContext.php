@@ -105,4 +105,15 @@ interface IRegistrationContext {
 	 * @since 20.0.0
 	 */
 	public function registerMiddleware(string $class): void;
+
+	/**
+	 * Register a search provider for the unified search
+	 *
+	 * @param string $class
+	 *
+	 * @return void
+	 *
+	 * @see 20.0.0
+	 */
+	public function registerSearchProvider(string $class): void;
 }

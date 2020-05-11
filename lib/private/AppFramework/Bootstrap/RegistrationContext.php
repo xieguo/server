@@ -52,6 +52,9 @@ class RegistrationContext {
 	/** @var array[] */
 	private $middlewares = [];
 
+	/** @var array[] */
+	private $searchProviders = [];
+
 	/** @var ILogger */
 	private $logger;
 
@@ -119,6 +122,13 @@ class RegistrationContext {
 					$class
 				);
 			}
+
+			public function registerSearchProvider(string $class): void {
+				$this->context->registerSearchProvider(
+					$this->appId,
+					$class
+				);
+			}
 		};
 	}
 
@@ -167,6 +177,13 @@ class RegistrationContext {
 		$this->middlewares[] = [
 			"appId" => $appId,
 			"class" => $class,
+		];
+	}
+
+	public function registerSearchProvider(string $appId, string $class) {
+		$this->searchProviders[] = [
+			'appId' => $appId,
+			'class' => $class,
 		];
 	}
 
