@@ -31,6 +31,7 @@ use OCA\UserStatus\Exception\InvalidClearAtException;
 use OCA\UserStatus\Exception\InvalidStatusIconException;
 use OCA\UserStatus\Exception\InvalidStatusTypeException;
 use OCA\UserStatus\Exception\StatusMessageTooLongException;
+use OCA\UserStatus\Service\EmojiService;
 use OCA\UserStatus\Service\StatusService;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -44,6 +45,9 @@ class StatusServiceTest extends TestCase {
 	/** @var ITimeFactory|\PHPUnit\Framework\MockObject\MockObject */
 	private $timeFactory;
 
+	/** @var EmojiService|\PHPUnit\Framework\MockObject\MockObject */
+	private $emojiService;
+
 	/** @var StatusService */
 	private $service;
 
@@ -52,7 +56,8 @@ class StatusServiceTest extends TestCase {
 
 		$this->mapper = $this->createMock(UserStatusMapper::class);
 		$this->timeFactory = $this->createMock(ITimeFactory::class);
-		$this->service = new StatusService($this->mapper, $this->timeFactory);
+		$this->emojiService = $this->createMock(EmojiService::class);
+		$this->service = new StatusService($this->mapper, $this->timeFactory, $this->emojiService);
 	}
 
 	public function testFindAll(): void {
@@ -101,6 +106,8 @@ class StatusServiceTest extends TestCase {
 	 * @param bool $expectException
 	 * @param string|null $expectedExceptionClass
 	 * @param string|null $expectedExceptionMessage
+	 * @param bool $expectSupportEmoji
+	 * @param bool $expectEmojiValid
 	 *
 	 * @dataProvider setStatusDataProvider
 	 */
@@ -113,7 +120,9 @@ class StatusServiceTest extends TestCase {
 								  bool $expectSuccess,
 								  bool $expectException,
 								  ?string $expectedExceptionClass,
-								  ?string $expectedExceptionMessage): void {
+								  ?string $expectedExceptionMessage,
+								  bool $expectSupportEmoji,
+								  bool $expectEmojiValid): void {
 		$userStatus = new UserStatus();
 
 		if ($expectExisting) {
@@ -151,6 +160,14 @@ class StatusServiceTest extends TestCase {
 			->method('getTime')
 			->willReturn(40);
 
+		$this->emojiService
+			->method('doesPlatformSupportEmoji')
+			->willReturn($expectSupportEmoji);
+		$this->emojiService
+			->method('isValidEmoji')
+			->with($statusIcon)
+			->willReturn($expectEmojiValid);
+
 		if ($expectException) {
 			$this->expectException($expectedExceptionClass);
 			$this->expectExceptionMessage($expectedExceptionMessage);
@@ -172,39 +189,42 @@ class StatusServiceTest extends TestCase {
 	public function setStatusDataProvider(): array {
 		return [
 			// Valid requests
-			['john.doe', 'unavailable', '🏝', 'On vacation', 50, true, true, false, null, null],
-			['john.doe', 'unavailable', '🏝', 'On vacation', 50, false, true, false, null, null],
-			['john.doe', 'busy', '📱', 'In a phone call', 42, true, true, false, null, null],
-			['john.doe', 'busy', '📱', 'In a phone call', 42, false, true, false, null, null],
-			['john.doe', 'available', '🏢', 'At work', null, true, true, false, null, null],
-			['john.doe', 'available', '🏢', 'At work', null, false, true, false, null, null],
+			['john.doe', 'unavailable', '🏝', 'On vacation', 50, true, true, false, null, null, true, true],
+			['john.doe', 'unavailable', '🏝', 'On vacation', 50, false, true, false, null, null, true, true],
+			['john.doe', 'busy', '📱', 'In a phone call', 42, true, true, false, null, null, true, true],
+			['john.doe', 'busy', '📱', 'In a phone call', 42, false, true, false, null, null, true, true],
+			['john.doe', 'available', '🏢', 'At work', null, true, true, false, null, null, true, true],
+			['john.doe', 'available', '🏢', 'At work', null, false, true, false, null, null, true, true],
 			// Unknown status type
 			['john.doe', 'out-of-office', '📱', 'In a phone call', 42, true, false, true, InvalidStatusTypeException::class,
-				'Status-type "out-of-office" is not supported'],
+				'Status-type "out-of-office" is not supported', true, true],
 			['john.doe', 'out-of-office', '📱', 'In a phone call', 42, false, false, true, InvalidStatusTypeException::class,
-				'Status-type "out-of-office" is not supported'],
+				'Status-type "out-of-office" is not supported', true, true],
+			// Emoji not supported on platform
+			['john.doe', 'busy', '📱📠', 'In a phone call', 42, true, false, true, InvalidStatusIconException::class,
+				'Platform does not support status-icon.', false, true],
+			['john.doe', 'busy', '📱📠', 'In a phone call', 42, false, false, true, InvalidStatusIconException::class,
+				'Platform does not support status-icon.', false, true],
+			['john.doe', 'busy', '📱📠', 'In a phone call', 42, true, false, true, InvalidStatusIconException::class,
+				'Platform does not support status-icon.', false, false],
+			['john.doe', 'busy', '📱📠', 'In a phone call', 42, false, false, true, InvalidStatusIconException::class,
+				'Platform does not support status-icon.', false, false],
 			// More than one character for the emoji
 			['john.doe', 'busy', '📱📠', 'In a phone call', 42, true, false, true, InvalidStatusIconException::class,
-				'Status-Icon is longer than one character'],
+				'Status-Icon is longer than one character', true, false],
 			['john.doe', 'busy', '📱📠', 'In a phone call', 42, false, false, true, InvalidStatusIconException::class,
-				'Status-Icon is longer than one character'],
+				'Status-Icon is longer than one character', true, false],
 			// Message too long
 			['john.doe', 'busy', '📱', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 42, true, false, true, StatusMessageTooLongException::class,
-				'Message is longer than supported length of 80 characters'],
+				'Message is longer than supported length of 80 characters', true, true],
 			['john.doe', 'busy', '📱', 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', 42, false, false, true, StatusMessageTooLongException::class,
-				'Message is longer than supported length of 80 characters'],
+				'Message is longer than supported length of 80 characters', true, true],
 			// Message too long - testing it counts characters, not bytes
-			['john.doe', 'busy', '📱', '🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃', 42, true,  true, false, null, null],
-			['john.doe', 'busy', '📱', '🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃', 42, false,  true, false, null, null],
+			['john.doe', 'busy', '📱', '🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃', 42, true,  true, false, null, null, true, true],
+			['john.doe', 'busy', '📱', '🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃🙃', 42, false,  true, false, null, null, true, true],
 			// Clear at is in the past
-			['john.doe', 'busy', '📱', 'In a phone call', 10, true, false, true, InvalidClearAtException::class, 'ClearAt is in the past'],
-			['john.doe', 'busy', '📱', 'In a phone call', 10, false, false, true, InvalidClearAtException::class, 'ClearAt is in the past'],
-			// Test some more complex emojis with modifiers and zero-width-joiner
-			['john.doe', 'busy', '👩🏿‍💻', 'In a phone call', 42, true, true, false, null, null],
-			['john.doe', 'busy', '🤷🏼‍♀️', 'In a phone call', 42, true, true, false, null, null],
-			['john.doe', 'busy', '🏳️‍🌈', 'In a phone call', 42, true, true, false, null, null],
-			['john.doe', 'busy', '👨‍👨‍👦‍👦', 'In a phone call', 42, true, true, false, null, null],
-			['john.doe', 'busy', '👩‍❤️‍👩', 'In a phone call', 42, true, true, false, null, null],
+			['john.doe', 'busy', '📱', 'In a phone call', 10, true, false, true, InvalidClearAtException::class, 'ClearAt is in the past', true, true],
+			['john.doe', 'busy', '📱', 'In a phone call', 10, false, false, true, InvalidClearAtException::class, 'ClearAt is in the past', true, true],
 		];
 	}
 

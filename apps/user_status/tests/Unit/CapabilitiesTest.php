@@ -26,9 +26,13 @@ declare(strict_types=1);
 namespace OCA\UserStatus\Tests;
 
 use OCA\UserStatus\Capabilities;
+use OCA\UserStatus\Service\EmojiService;
 use Test\TestCase;
 
 class CapabilitiesTest extends TestCase {
+
+	/** @var EmojiService|\PHPUnit\Framework\MockObject\MockObject */
+	private $emojiService;
 
 	/** @var Capabilities */
 	private $capabilities;
@@ -36,14 +40,32 @@ class CapabilitiesTest extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
-		$this->capabilities = new Capabilities();
+		$this->emojiService = $this->createMock(EmojiService::class);
+		$this->capabilities = new Capabilities($this->emojiService);
 	}
 
-	public function testGetCapabilities(): void {
+	/**
+	 * @param bool $supportsEmojis
+	 *
+	 * @dataProvider getCapabilitiesDataProvider
+	 */
+	public function testGetCapabilities(bool $supportsEmojis): void {
+		$this->emojiService->expects($this->once())
+			->method('doesPlatformSupportEmoji')
+			->willReturn($supportsEmojis);
+
 		$this->assertEquals([
 			'user_status' => [
 				'enabled' => true,
+				'supports_emoji' => $supportsEmojis,
 			]
 		], $this->capabilities->getCapabilities());
+	}
+
+	public function getCapabilitiesDataProvider(): array {
+		return [
+			[true],
+			[false],
+		];
 	}
 }
