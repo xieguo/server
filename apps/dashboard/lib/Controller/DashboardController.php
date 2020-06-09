@@ -23,7 +23,6 @@
 
 namespace OCA\Dashboard\Controller;
 
-use OC_Util;
 use OCA\Viewer\Event\LoadViewer;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\TemplateResponse;
@@ -61,7 +60,7 @@ class DashboardController extends Controller {
 
 		$dashboardManager = $this->dashboardManager;
 		$this->inititalStateService->provideLazyInitialState('dashboard', 'panels', function () use ($dashboardManager) {
-			return array_map(function(IPanel $panel) {
+			return array_map(function (IPanel $panel) {
 				return [
 					'id' => $panel->getId(),
 					'title' => $panel->getTitle(),

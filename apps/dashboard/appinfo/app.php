@@ -22,4 +22,3 @@
  */
 
 $app = new \OCP\AppFramework\App('dashboard');
-
