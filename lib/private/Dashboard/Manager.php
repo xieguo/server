@@ -27,7 +27,6 @@ use OCP\Dashboard\IManager;
 use OCP\Dashboard\IPanel;
 
 class Manager implements IManager {
-
 	private $panels = [];
 
 	/**

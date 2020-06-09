@@ -43,5 +43,4 @@ interface IManager {
 	 * @return IPanel[]
 	 */
 	public function getPanels(): array;
-
 }

@@ -23,7 +23,6 @@
 
 namespace OCP\Dashboard;
 
-
 use OCP\EventDispatcher\Event;
 
 /**
@@ -33,7 +32,6 @@ use OCP\EventDispatcher\Event;
  * @since 20.0.0
  */
 class IRegisterPanelEvent extends Event {
-
 	private $manager;
 
 	public function __construct(IManager $manager) {
@@ -49,5 +47,4 @@ class IRegisterPanelEvent extends Event {
 	public function registerPanel(IPanel $panel) {
 		$this->manager->registerPanel($panel);
 	}
-
 }
