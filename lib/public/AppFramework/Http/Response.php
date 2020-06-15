@@ -238,6 +238,7 @@ class Response {
 
 		$this->headers['Content-Security-Policy'] = $this->getContentSecurityPolicy()->buildPolicy();
 		$this->headers['Feature-Policy'] = $this->getFeaturePolicy()->buildPolicy();
+		$this->headers['X-Robots-Tag'] = 'noindex';
 
 		if ($this->ETag) {
 			$mergeWith['ETag'] = '"' . $this->ETag . '"';
