@@ -1,4 +1,7 @@
 <?php
+
+declare(strict_types=1);
+
 /**
  * @copyright Copyright (c) 2016, ownCloud, Inc.
  *
@@ -42,22 +45,29 @@ use OCA\Files\Listener\LoadSidebarListener;
 use OCA\Files\Notification\Notifier;
 use OCA\Files\Service\TagService;
 use OCP\AppFramework\App;
+use OCP\AppFramework\Bootstrap\IBootContext;
+use OCP\AppFramework\Bootstrap\IBootstrap;
+use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\Collaboration\Resources\IProviderManager;
-use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IContainer;
+use OCP\IServerContainer;
+use OCP\Notification\IManager;
 
-class Application extends App {
+class Application extends App implements IBootstrap {
 	public const APP_ID = 'files';
 
 	public function __construct(array $urlParams=[]) {
 		parent::__construct(self::APP_ID, $urlParams);
-		$container = $this->getContainer();
-		$server = $container->getServer();
+	}
 
+	public function register(IRegistrationContext $context): void {
 		/**
 		 * Controllers
 		 */
-		$container->registerService('APIController', function (IContainer $c) use ($server) {
+		$context->registerService('APIController', function (IContainer $c) {
+			/** @var IServerContainer $server */
+			$server = $c->query(IServerContainer::class);
+
 			return new ApiController(
 				$c->query('AppName'),
 				$c->query('Request'),
@@ -73,13 +83,15 @@ class Application extends App {
 		/**
 		 * Services
 		 */
-		$container->registerService('TagService', function (IContainer $c) use ($server) {
-			$homeFolder = $c->query('ServerContainer')->getUserFolder();
+		$context->registerService('TagService', function (IContainer $c) {
+			/** @var IServerContainer $server */
+			$server = $c->query(IServerContainer::class);
+
 			return new TagService(
-				$c->query('ServerContainer')->getUserSession(),
-				$c->query('ServerContainer')->getActivityManager(),
-				$c->query('ServerContainer')->getTagManager()->load(self::APP_ID),
-				$homeFolder,
+				$server->getUserSession(),
+				$server->getActivityManager(),
+				$server->getTagManager()->load(self::APP_ID),
+				$server->getUserFolder(),
 				$server->getEventDispatcher()
 			);
 		});
@@ -87,23 +99,23 @@ class Application extends App {
 		/*
 		 * Register capabilities
 		 */
-		$container->registerCapability(Capabilities::class);
+		$context->registerCapability(Capabilities::class);
 
+		$context->registerEventListener(LoadAdditionalScriptsEvent::class, LegacyLoadAdditionalScriptsAdapter::class);
+		$context->registerEventListener(LoadSidebar::class, LoadSidebarListener::class);
+	}
+
+	public function boot(IBootContext $context): void {
 		/**
 		 * Register Collaboration ResourceProvider
 		 */
 		/** @var IProviderManager $providerManager */
-		$providerManager = $container->query(IProviderManager::class);
+		$providerManager = $context->getAppContainer()->query(IProviderManager::class);
 		$providerManager->registerResourceProvider(ResourceProvider::class);
-		Listener::register($server->getEventDispatcher());
+		Listener::register($context->getServerContainer()->getEventDispatcher());
 
-		/** @var IEventDispatcher $dispatcher */
-		$dispatcher = $container->query(IEventDispatcher::class);
-		$dispatcher->addServiceListener(LoadAdditionalScriptsEvent::class, LegacyLoadAdditionalScriptsAdapter::class);
-		$dispatcher->addServiceListener(LoadSidebar::class, LoadSidebarListener::class);
-
-		/** @var \OCP\Notification\IManager $notifications */
-		$notifications = $container->query(\OCP\Notification\IManager::class);
+		/** @var IManager $notifications */
+		$notifications = $context->getAppContainer()->query(IManager::class);
 		$notifications->registerNotifierService(Notifier::class);
 	}
 }
