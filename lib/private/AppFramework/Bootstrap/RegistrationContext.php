@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace OC\AppFramework\Bootstrap;
 
 use Closure;
+use OC\Search\SearchComposer;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\EventDispatcher\IEventDispatcher;
@@ -304,6 +305,23 @@ class RegistrationContext {
 				$appId = $middleware['appId'];
 				$this->logger->logException($e, [
 					'message' => "Error during capability registration of $appId: " . $e->getMessage(),
+					'level' => ILogger::ERROR,
+				]);
+			}
+		}
+	}
+
+	/**
+	 * @param App[] $apps
+	 */
+	public function delegateSearchProviderRegistration(array $apps, SearchComposer $searchComposer): void {
+		foreach ($this->searchProviders as $registration) {
+			try {
+				$searchComposer->registerProvider($registration['class']);
+			} catch (Throwable $e) {
+				$appId = $registration['appId'];
+				$this->logger->logException($e, [
+					'message' => "Error during search provider registration of $appId: " . $e->getMessage(),
 					'level' => ILogger::ERROR,
 				]);
 			}

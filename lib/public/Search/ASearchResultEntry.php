@@ -25,6 +25,8 @@ declare(strict_types=1);
 
 namespace OCP\Search;
 
+use JsonSerializable;
+
 /**
  * Represents an entry in a list of results an app returns for a unified search
  * query.
@@ -40,7 +42,7 @@ namespace OCP\Search;
  *
  * @since 20.0.0
  */
-abstract class ASearchResultEntry {
+abstract class ASearchResultEntry implements JsonSerializable {
 
 	/**
 	 * @var string
@@ -82,5 +84,14 @@ abstract class ASearchResultEntry {
 		$this->title = $title;
 		$this->subline = $subline;
 		$this->resourceUrl = $resourceUrl;
+	}
+
+	public function jsonSerialize(): array {
+		return [
+			'thumbnailUrl' => $this->thumbnailUrl,
+			'title' => $this->title,
+			'subline' => $this->subline,
+			'resourceUrl' => $this->resourceUrl,
+		];
 	}
 }

@@ -40,6 +40,18 @@ use OCP\IUser;
 interface IProvider {
 
 	/**
+	 * Get the unique ID of this search provider
+	 *
+	 * Ideally this should be the app name or an identifier identified with the
+	 * app name, especially if the app registers more than one provider.
+	 *
+	 * Example: 'mail', 'mail_recipients', 'files_sharing'
+	 *
+	 * @return string
+	 */
+	public function getId(): string;
+
+	/**
 	 * Find matching search entries in an app
 	 *
 	 * Search results can either be a complete list of all the matches the app can

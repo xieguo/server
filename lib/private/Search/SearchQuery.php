@@ -23,50 +23,62 @@ declare(strict_types=1);
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-namespace OCA\Files\Search;
+namespace OC\Search;
 
-use OCP\IL10N;
-use OCP\IUser;
-use OCP\Search\IProvider;
+
 use OCP\Search\ISearchQuery;
-use OCP\Search\SearchResult;
 
-class FilesSearchProvider implements IProvider {
+class SearchQuery implements ISearchQuery {
 
-	/** @var IL10N */
-	private $l10n;
+	private const LIMIT_DEFAULT = 20;
 
-	public function __construct(IL10N $l10n) {
-		$this->l10n = $l10n;
+	/** @var string */
+	private $term;
+
+	/** @var int */
+	private $sortOrder;
+
+	/** @var int */
+	private $limit;
+
+	/** @var int|null */
+	private $cursor;
+
+	public function __construct(string $term,
+								int $sortOrder = ISearchQuery::SORT_DATE_DESC,
+								int $limit = self::LIMIT_DEFAULT,
+								?int $cursor = null) {
+		$this->term = $term;
+		$this->sortOrder = $sortOrder;
+		$this->limit = $limit;
+		$this->cursor = $cursor;
 	}
 
-	public function getId(): string {
-		return 'files';
+	/**
+	 * @inheritDoc
+	 */
+	public function getTerm(): string {
+		return $this->term;
 	}
 
-	public function search(IUser $user, ISearchQuery $query): SearchResult {
-		return SearchResult::complete(
-			$this->l10n->t('Files'),
-			[
-				new FilesSearchResultEntry(
-					"path/to/icon.png",
-					"cute cats.jpg",
-					"/Cats",
-					"/f/21156"
-				),
-				new FilesSearchResultEntry(
-					"path/to/icon.png",
-					"cat 1.jpg",
-					"/Cats",
-					"/f/21192"
-				),
-				new FilesSearchResultEntry(
-					"path/to/icon.png",
-					"cat 2.jpg",
-					"/Cats",
-					"/f/25942"
-				),
-			]
-		);
+	/**
+	 * @inheritDoc
+	 */
+	public function getSortOrder(): int {
+		return $this->sortOrder;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getLimit(): int {
+		return $this->limit;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function getCursor() {
+		return $this->cursor;
 	}
 }
