@@ -88,9 +88,13 @@ class SearchComposer {
 	public function getProviders(): array {
 		$this->loadLazyProviders();
 
-		return array_map(function (IProvider $provider) {
-			$provider->getId();
-		}, $this->providers);
+		/**
+		 * Return an array with the IDs, but strip the associative keys
+		 */
+		return array_values(
+			array_map(function (IProvider $provider) {
+			return $provider->getId();
+		}, $this->providers));
 	}
 
 	public function search(IUser $user,
