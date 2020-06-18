@@ -30,7 +30,7 @@ use OCP\Search\ISearchQuery;
 
 class SearchQuery implements ISearchQuery {
 
-	private const LIMIT_DEFAULT = 20;
+	public const LIMIT_DEFAULT = 20;
 
 	/** @var string */
 	private $term;

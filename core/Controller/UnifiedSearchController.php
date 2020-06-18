@@ -31,6 +31,7 @@ use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCP\IUserSession;
+use OCP\Search\ISearchQuery;
 
 class UnifiedSearchController extends Controller {
 
@@ -62,16 +63,30 @@ class UnifiedSearchController extends Controller {
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
+	 *
+	 * @param string $providerId
 	 * @param string $term
+	 * @param int|null $sortOrder
+	 * @param int|null $limit
+	 * @param int|string|null $cursor
 	 *
 	 * @return JSONResponse
 	 */
-	public function search(string $providerId, string $term): JSONResponse {
+	public function search(string $providerId,
+						   string $term,
+						   ?int $sortOrder = null,
+						   ?int $limit = null,
+						   $cursor = null): JSONResponse {
 		return new JSONResponse(
 			$this->composer->search(
 				$this->userSession->getUser(),
 				$providerId,
-				new SearchQuery($term)
+				new SearchQuery(
+					$term,
+					$sortOrder ?? ISearchQuery::SORT_DATE_DESC,
+					$limit ?? SearchQuery::LIMIT_DEFAULT,
+					$cursor
+				)
 			)
 		);
 	}
