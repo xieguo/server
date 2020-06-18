@@ -25,6 +25,7 @@ declare(strict_types=1);
 
 namespace OC\AppFramework\Bootstrap;
 
+use OC\Push\Manager as PushManager;
 use OC_App;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -48,12 +49,17 @@ class Coordinator {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var PushManager */
+	private $pushManager;
+
 	public function __construct(IServerContainer $container,
 								IEventDispatcher $eventListener,
+								PushManager $pushManager,
 								ILogger $logger) {
 		$this->serverContainer = $container;
 		$this->eventDispatcher = $eventListener;
 		$this->logger = $logger;
+		$this->pushManager = $pushManager;
 	}
 
 	public function runRegistration(): void {
@@ -105,6 +111,7 @@ class Coordinator {
 		$context->delegateEventListenerRegistrations($this->eventDispatcher);
 		$context->delegateContainerRegistrations($apps);
 		$context->delegateMiddlewareRegistrations($apps);
+		$context->delegatePushRegistrations($this->pushManager);
 	}
 
 	public function bootApp(string $appId): void {

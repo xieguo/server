@@ -26,6 +26,7 @@ declare(strict_types=1);
 namespace OC\AppFramework\Bootstrap;
 
 use Closure;
+use OC\Push\Manager as PushManager;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use OCP\EventDispatcher\IEventDispatcher;
@@ -51,6 +52,12 @@ class RegistrationContext {
 
 	/** @var array[] */
 	private $middlewares = [];
+
+	/** @var string */
+	private $pushApp;
+
+	/** @var array[] */
+	private $pushAccessValidators = [];
 
 	/** @var ILogger */
 	private $logger;
@@ -119,6 +126,17 @@ class RegistrationContext {
 					$class
 				);
 			}
+
+			public function registerPushApp(string $service): void {
+				$this->context->registerPushApp($service);
+			}
+
+			public function registerPushAccessValidator(string $service): void {
+				$this->context->registerPushAccessValidator(
+					$this->appId,
+					$service
+				);
+			}
 		};
 	}
 
@@ -167,6 +185,17 @@ class RegistrationContext {
 		$this->middlewares[] = [
 			"appId" => $appId,
 			"class" => $class,
+		];
+	}
+
+	public function registerPushApp(string $class) {
+		$this->pushApp = $class;
+	}
+
+	public function registerPushAccessValidator(string $appId, string $validator) {
+		$this->pushAccessValidators[] = [
+			'appId' => $appId,
+			'validator' => $validator,
 		];
 	}
 
@@ -292,4 +321,20 @@ class RegistrationContext {
 			}
 		}
 	}
+
+	public function delegatePushRegistrations(PushManager $manager): void {
+		if ($this->pushApp === null) {
+			$this->logger->debug('No push app to register hence skipping push registration');
+			return;
+		}
+		$manager->registerPushApp($this->pushApp);
+
+		foreach ($this->pushAccessValidators as $validator) {
+			$manager->registerAccessValidator(
+				$validator['appId'],
+				$validator['validator']
+			);
+		}
+	}
+
 }

@@ -28,6 +28,8 @@ namespace OCP\AppFramework\Bootstrap;
 use OCP\AppFramework\IAppContainer;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IContainer;
+use OCP\Push\IPushApp;
+use OCP\Push\IValidateAccess;
 
 /**
  * The context object passed to IBootstrap::register
@@ -105,4 +107,31 @@ interface IRegistrationContext {
 	 * @since 20.0.0
 	 */
 	public function registerMiddleware(string $class): void;
+
+	/**
+	 * Register a push application.
+	 *
+	 * @param string $service
+	 *
+	 * @return void
+	 *
+	 * @see IPushApp
+	 *
+	 * @since 20.0.0
+	 */
+	public function registerPushApp(string $service): void;
+
+
+	/**
+	 * Register a Push access validator
+	 *
+	 * @param string $service
+	 *
+	 * @return void
+	 *
+	 * @see IValidateAccess
+	 *
+	 * @since 20.0.0
+	 */
+	public function registerPushAccessValidator(string $service): void;
 }
